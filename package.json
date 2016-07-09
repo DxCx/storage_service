@@ -2,7 +2,8 @@
   "name": "storage_service",
   "version": "0.0.1",
   "description": "Generic Helper for memory mangment with events",
-  "main": "index.js",
+  "main": "lib/main.js",
+  "typings": "lib/main.d.ts",
   "scripts": {
     "typings": "typings install",
     "prebuild": "npm install && npm run typings",
