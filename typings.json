@@ -2,7 +2,7 @@
   "name": "storage_service",
   "version": "0.0.1",
   "globalDependencies": {
-    "node": "registry:dt/node#6.0.0+20160621231320",
+    "node": "registry:dt/node#6.0.0+20160709114037",
     "q": "registry:dt/q#0.0.0+20160613154756"
   }
 }
