@@ -73,6 +73,20 @@ export abstract class StorageItem implements IStorageItem {
     }
 
     /**
+     * used to replace _d object with a new one,
+     * the change will occur only after the original deferred was fired.
+     * this method is helpful when changing states of the object.
+     * @param d new deferred object that will be used for resolve.
+     * @returns promise that will be fired only when state transaction is done.
+     */
+    protected _resetDeferred(d: Q.Deferred<StorageItem>): Q.Promise<StorageItem> {
+        return this.promise.then((object) => {
+            this._d = d;
+            return d.promise;
+        });
+    }
+
+    /**
      * should be called when object is ready to use.
      * the call will trigger the promise resolution.
      */
