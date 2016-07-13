@@ -6,15 +6,13 @@ import { IStorageItem } from "./Interfaces";
 
 export abstract class StorageItem implements IStorageItem {
     private _d: Q.Deferred<StorageItem>;
-    protected _ee: EventEmitter;
 
-    constructor (protected _pee: EventEmitter, private _key: string) {
+    constructor (protected _ee: EventEmitter, private _key: string) {
         this._d = Q.defer<StorageItem>();
-        this._ee = new EventEmitter();
 
         // Registers on error.
-        this._pee.on(`error.${this._key}`, (code: number, err: Error) => {
-            this._emitError(code, err);
+        _ee.on("error", (err: Error) => {
+            this._emitError(err);
         });
     }
 
@@ -36,8 +34,8 @@ export abstract class StorageItem implements IStorageItem {
      * registers event handler for error event.
      * @param handler to be called when the entry is closed.
      */
-    public onError (handler: (code: number, err: Error) => void): void {
-        this._ee.once("error", handler);
+    public onError (handler: (err: Error) => void): void {
+        this._ee.once("unhandledError", handler);
     }
 
     /**
@@ -63,12 +61,12 @@ export abstract class StorageItem implements IStorageItem {
      * @param err object that defines the error.
      * @returns true if event was handled, false otherwise.
      */
-    protected _emitError(code: number, err: Error): boolean {
+    protected _emitError(err: Error): boolean {
         if ( true === this._d.promise.isPending() ) {
             this._d.reject(err);
             return true;
         } else {
-            return this._ee.emit("error", code, err);
+            return this._ee.emit("unhandledError", err);
         }
     }
 

@@ -149,8 +149,7 @@ module.exports = {
 		extensions: ['', '.ts', '.js']
 	},
 	module: {
-		/* TODO: Finish Linting/Fix all issues */
-//		preLoaders: [{ test: /\.ts$/, loader: 'tslint' }],
+		preLoaders: [{ test: /\.ts$/, loader: 'tslint' }],
 		loaders: [{ test: /\.ts$/, loader: 'ts-loader' }]
 	},
 	externals: nodeModules,
