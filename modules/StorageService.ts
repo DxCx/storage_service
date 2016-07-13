@@ -24,12 +24,12 @@ export abstract class StorageService<T extends IStorageItem> {
     /**
      * The method is used to search for specific key in storage.
      * @param key to search
-     * @returns promise that will return true if key exists in storage, reject otherwise.
+     * @returns promise that will resolve if key exists in storage, reject otherwise.
      */
-    public hasEntry(key: string): Q.Promise<boolean> {
-        return Q.Promise<boolean>((resolve, reject) => {
-            if (key in this._db) {
-                resolve(true);
+    public hasEntry(key: string): Q.Promise<void> {
+        return Q.Promise<void>((resolve, reject) => {
+            if (true === this._db.hasOwnProperty(key)) {
+                resolve(undefined);
             } else {
                 reject(new Error(`key ${key} was not found in storage.`));
             }
@@ -42,7 +42,7 @@ export abstract class StorageService<T extends IStorageItem> {
      * @returns required entry, will be rejected if entry not found.
      */
     public getEntry(key: string): Q.Promise<T> {
-        return this._getEntry(key).then((e: IDBEntry<T>) => {
+        return this._getEntry(key).then((e: IDBEntry<T>): T => {
             return e.item;
         });
     }
@@ -99,12 +99,8 @@ export abstract class StorageService<T extends IStorageItem> {
      * @returns promise to be resolved once object is usable.
      */
     protected _addEntry(key: string, ...creationArgs: any[]): Q.Promise<T> {
-        return this.hasEntry(key).then<T>((exists) => {
-            // If entry exists, throw error.
-            if (true === exists ) { // Dummy, will always get in.
-                throw new Error(`Entry ${key} already exists`);
-            }
-            return undefined;
+        return this.hasEntry(key).then<T>((): T => {
+            throw new Error(`Entry ${key} already exists`);
         }, (err) => {
             // Entry does not exists, fix promise chain by returning a promise.
             let ee: EventEmitter = new EventEmitter();
@@ -164,8 +160,8 @@ export abstract class StorageService<T extends IStorageItem> {
      * @param creationArgs arguments for the entry constructor. (shoulld be same _newEntry)
      * @returns promise that resolves to the requested entry.
      */
-    protected _resolveEntry(key: string, ...creationArgs: any[]) {
-        return this.getEntry(key).then((e: T) => {
+    protected _resolveEntry(key: string, ...creationArgs: any[]): Q.Promise<T> {
+        return this.getEntry(key).then((e: T): T => {
             return e;
         }, (err) => {
             return this._allocateEntry(key, ...creationArgs);
@@ -178,7 +174,7 @@ export abstract class StorageService<T extends IStorageItem> {
      * @returns required Idbentry, will be rejected if entry not found.
      */
     private _getEntry(key: string): Q.Promise<IDBEntry<T>> {
-        return this.hasEntry(key).then((exists) => {
+        return this.hasEntry(key).then((): IDBEntry<T> => {
             return this._db[key];
         });
     }
