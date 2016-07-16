@@ -1,24 +1,23 @@
 "use strict";
 
-import { EventEmitter } from "events";
+import { AsyncEventEmitter } from "ts-async-eventemitter";
 import { IStorageItem } from "./Interfaces";
-import * as Q from "q";
 
 interface IDBEntry<T> {
     item: T;
-    ee: EventEmitter;
+    ee: AsyncEventEmitter;
 }
 
 /**
  * Base class used for storing information.
  */
 export abstract class StorageService<T extends IStorageItem> {
-    protected _ee: EventEmitter;
+    protected _ee: AsyncEventEmitter;
     private _db: Array<IDBEntry<T>>;
 
     constructor() {
         this._db = new Array<IDBEntry<T>>();
-        this._ee = new EventEmitter();
+        this._ee = new AsyncEventEmitter();
     }
 
     /**
@@ -26,8 +25,8 @@ export abstract class StorageService<T extends IStorageItem> {
      * @param key to search
      * @returns promise that will resolve if key exists in storage, reject otherwise.
      */
-    public hasEntry(key: string): Q.Promise<void> {
-        return Q.Promise<void>((resolve, reject) => {
+    public hasEntry(key: string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
             if (true === this._db.hasOwnProperty(key)) {
                 resolve(undefined);
             } else {
@@ -41,7 +40,7 @@ export abstract class StorageService<T extends IStorageItem> {
      * @param key to search
      * @returns required entry, will be rejected if entry not found.
      */
-    public getEntry(key: string): Q.Promise<T> {
+    public getEntry(key: string): Promise<T> {
         return this._getEntry(key).then((e: IDBEntry<T>): T => {
             return e.item;
         });
@@ -81,13 +80,13 @@ export abstract class StorageService<T extends IStorageItem> {
      *
      * @returns promise to be resolved once object is usable.
      */
-    protected abstract _allocateEntry(key: string, ...creationArgs: any[]): Q.Promise<T>;
+    protected abstract _allocateEntry(key: string, ...creationArgs: any[]): Promise<T>;
 
     /**
      * Abstract method used to allocate a new entry
      * NOTE: should return the result of new operator
      */
-    protected abstract _newEntry(pee: EventEmitter, key: string, ...creationArgs: any[]): T;
+    protected abstract _newEntry(pee: AsyncEventEmitter, key: string, ...creationArgs: any[]): T;
 
     /**
      * Allocates and adds a new entry to the storage.
@@ -98,29 +97,30 @@ export abstract class StorageService<T extends IStorageItem> {
      * @param creationArgs arguments for the entry constructor. (shoulld be same _newEntry)
      * @returns promise to be resolved once object is usable.
      */
-    protected _addEntry(key: string, ...creationArgs: any[]): Q.Promise<T> {
+    protected _addEntry(key: string, ...creationArgs: any[]): Promise<T> {
         return this.hasEntry(key).then<T>((): T => {
             throw new Error(`Entry ${key} already exists`);
         }, (err) => {
             // Entry does not exists, fix promise chain by returning a promise.
-            let ee: EventEmitter = new EventEmitter();
+            let ee: AsyncEventEmitter = new AsyncEventEmitter();
             let o: IDBEntry<T> = {
                 ee: ee,
                 item: this._newEntry(ee, key, ...creationArgs),
             };
             let doneCb = () => {
                 delete this._db[key];
-                this._ee.emit("removed", o.item);
+                return this._ee.emitAsync<void>("removed", o.item);
             };
 
             this._db[key] = o;
-            this._ee.emit("added", o.item);
             o.item.onClose(doneCb);
             o.item.promise.catch((objErr: any) => {
                 doneCb();
                 throw objErr;
             });
-            return o.item;
+            return this._ee.emitAsync<void>("added", o.item).catch((e) => {/*ignore*/}).then(() => {
+                return o.item;
+            });
         });
     }
 
@@ -133,9 +133,9 @@ export abstract class StorageService<T extends IStorageItem> {
      * @returns promise that resolves once the event
      * is emitted indicating if the event was handled or not.
      */
-    protected _emitEntry(key: string, eventName: string, ...eventArgs: any[]): Q.Promise<boolean> {
-        return this._getEntry(key).then((e: IDBEntry<T>) => {
-            return e.ee.emit(eventName, ...eventArgs);
+    protected _emitEntry<U>(key: string, eventName: string, ...eventArgs: any[]): Promise<U[]> {
+        return this._getEntry(key).then((entry: IDBEntry<T>) => {
+            return entry.ee.emitAsync<U>(eventName, ...eventArgs);
         });
     }
 
@@ -160,7 +160,7 @@ export abstract class StorageService<T extends IStorageItem> {
      * @param creationArgs arguments for the entry constructor. (shoulld be same _newEntry)
      * @returns promise that resolves to the requested entry.
      */
-    protected _resolveEntry(key: string, ...creationArgs: any[]): Q.Promise<T> {
+    protected _resolveEntry(key: string, ...creationArgs: any[]): Promise<T> {
         return this.getEntry(key).then((e: T): T => {
             return e;
         }, (err) => {
@@ -173,7 +173,7 @@ export abstract class StorageService<T extends IStorageItem> {
      * @param key to search
      * @returns required Idbentry, will be rejected if entry not found.
      */
-    private _getEntry(key: string): Q.Promise<IDBEntry<T>> {
+    private _getEntry(key: string): Promise<IDBEntry<T>> {
         return this.hasEntry(key).then((): IDBEntry<T> => {
             return this._db[key];
         });

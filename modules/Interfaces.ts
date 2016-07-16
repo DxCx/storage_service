@@ -4,12 +4,17 @@ export interface IStorageItem {
     /**
      * promise that states the entry is ready.
      */
-    promise: Q.Promise<IStorageItem>;
+    promise: Promise<IStorageItem>;
 
     /**
      * key of the entry in the holding storage.
      */
     key: string;
+
+    /**
+     * is the item (or promise) pending for being created
+     */
+    isPending: boolean;
 
     /**
      * registers event handler for close event.

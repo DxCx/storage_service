@@ -1,6 +1,6 @@
 {
   "name": "storage_service",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Generic Helper for memory mangment with events",
   "main": "lib/main.js",
   "typings": "lib/main.d.ts",
@@ -25,7 +25,8 @@
   },
   "homepage": "https://github.com/DxCx/storage_service#readme",
   "dependencies": {
-    "q": "^1.4.1"
+    "q": "^1.4.1",
+    "ts-async-eventemitter": "0.0.1"
   },
   "devDependencies": {
     "delete-empty": "^0.1.3",
