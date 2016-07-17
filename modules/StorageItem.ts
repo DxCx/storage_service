@@ -43,7 +43,7 @@ export abstract class StorageItem implements IStorageItem {
      * registers event handler for error event.
      * @param handler to be called when the entry is closed.
      */
-    public onError (handler: (err: Error) => void): void {
+    public onError (handler: (err: Error) => Promise<void> | void): void {
         this._ee.on("error", handler);
     }
 
@@ -51,7 +51,7 @@ export abstract class StorageItem implements IStorageItem {
      * registers event handler for close event.
      * @param handler to be called when the entry is closed.
      */
-    public onClose(handler: () => void): void {
+    public onClose(handler: () => Promise<void> | void): void {
         this._ee.once("close", handler);
     }
 

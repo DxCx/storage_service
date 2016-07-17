@@ -20,11 +20,11 @@ export interface IStorageItem {
      * registers event handler for close event.
      * @param handler to be called when the entry is closed.
      */
-    onClose(handler: () => void): void;
+    onClose(handler: () => Promise<void> | void): void;
 
     /**
      * registers event handler for error event.
      * @param handler to be called when the entry is closed.
      */
-    onError(handler: (...args: any[]) => void): void;
+    onError (handler: (...args: any[]) => Promise<void> | void): void;
 }

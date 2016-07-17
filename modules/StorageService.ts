@@ -109,7 +109,7 @@ export abstract class StorageService<T extends IStorageItem> {
             };
             let doneCb = () => {
                 delete this._db[key];
-                return this._ee.emitAsync<void>("removed", o.item);
+                return this._ee.emitAsync<void>("removed", o.item).then(() => {/*ignore*/});
             };
 
             this._db[key] = o;
