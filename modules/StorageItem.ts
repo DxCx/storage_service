@@ -70,12 +70,12 @@ export abstract class StorageItem implements IStorageItem {
      * @param err object that defines the error.
      * @returns true if event was handled, false otherwise.
      */
-    protected _emitError(err: Error): boolean {
+    protected _emitError(err: Error): Promise<void> {
         if ( true === this.isPending ) {
             this._d.reject(err);
-            return true;
+            return this._emitClose();
         } else {
-            return this._ee.emit("error", err);
+            return this._ee.emitAsync("error", err).then(() => {/*ignore*/});
         }
     }
 
