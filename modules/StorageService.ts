@@ -107,19 +107,19 @@ export abstract class StorageService<T extends IStorageItem> {
                 ee: ee,
                 item: this._newEntry(ee, key, ...creationArgs),
             };
-            let doneCb = () => {
-                delete this._db[key];
-                return this._ee.emitAsync<void>("removed", o.item).then(() => {/*ignore*/});
-            };
-
             this._db[key] = o;
-            o.item.onClose(doneCb);
-            o.item.promise.catch((objErr: any) => {
-                doneCb();
-                throw objErr;
-            });
-            return this._ee.emitAsync<void>("added", o.item).catch((e) => {/*ignore*/}).then(() => {
-                return o.item;
+            o.item.promise.then(() => {
+                o.item.onClose(() => {
+                    delete this._db[key];
+                    return this._ee.emitAsync<void>("removed", o.item).then(() => {/*ignore*/});
+                });
+
+                return this._ee.emitAsync<void>("added", o.item).catch((e) => {/*ignore*/}).then(() => {
+                    return o.item;
+                });
+            }, (errObj: Error) => {
+                delete this._db[key];
+                throw errObj;
             });
         });
     }
