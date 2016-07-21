@@ -114,13 +114,13 @@ export abstract class StorageService<T extends IStorageItem> {
                     return this._ee.emitAsync<void>("removed", o.item).then(() => {/*ignore*/});
                 });
 
-                return this._ee.emitAsync<void>("added", o.item).catch((e) => {/*ignore*/}).then(() => {
-                    return o.item;
-                });
+                return this._ee.emitAsync<void>("added", o.item);
             }, (errObj: Error) => {
                 delete this._db[key];
                 throw errObj;
             });
+
+            return o.item;
         });
     }
 
