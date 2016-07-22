@@ -103,20 +103,25 @@ export abstract class StorageService<T extends IStorageItem> {
         }, (err) => {
             // Entry does not exists, fix promise chain by returning a promise.
             let ee: AsyncEventEmitter = new AsyncEventEmitter();
+            let isItemResolved: boolean = false;
             let o: IDBEntry<T> = {
                 ee: ee,
                 item: this._newEntry(ee, key, ...creationArgs),
             };
             this._db[key] = o;
-            o.item.promise.then(() => {
-                o.item.onClose(() => {
-                    delete this._db[key];
+            let doneCb = () => {
+                delete this._db[key];
+                if ( true === isItemResolved ) {
                     return this._ee.emitAsync<void>("removed", o.item).then(() => {/*ignore*/});
-                });
+                }
+            };
 
+            o.item.onClose(doneCb);
+            o.item.promise.then(() => {
+                isItemResolved = true;
                 return this._ee.emitAsync<void>("added", o.item);
             }, (errObj: Error) => {
-                delete this._db[key];
+                doneCb();
                 throw errObj;
             });
 
