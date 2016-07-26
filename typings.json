@@ -2,7 +2,11 @@
   "name": "storage_service",
   "version": "0.0.1",
   "globalDependencies": {
-    "node": "registry:dt/node#6.0.0+20160709114037",
+    "core-decorators": "registry:dt/core-decorators#0.10.0+20160316155526",
+    "node": "registry:dt/node#6.0.0+20160720070758",
     "q": "registry:dt/q#0.0.0+20160613154756"
+  },
+  "dependencies": {
+    "es6-promise": "registry:npm/es6-promise#3.0.0+20160723033700"
   }
 }

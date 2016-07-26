@@ -2,16 +2,17 @@
 
 import * as Q from "q";
 import { AsyncEventEmitter } from "ts-async-eventemitter";
-import { IStorageItem } from "./Interfaces";
+import { IReactiveDocument, IReactiveUpdate, IReactiveError } from "./Interfaces";
+import { ReactiveEmitter, getReactiveEmitter } from "./ReactiveEmitter";
 
-export abstract class StorageItem implements IStorageItem {
+export abstract class ReactiveDocument implements IReactiveDocument {
+    @ReactiveEmitter("update")
     protected _ee: AsyncEventEmitter;
-    private _d: Q.Deferred<StorageItem>;
-    private _promise: Promise<StorageItem>;
+    private _d: Q.Deferred<ReactiveDocument>;
+    private _promise: Promise<ReactiveDocument>;
 
     constructor (protected _pee: AsyncEventEmitter, private _key: string) {
-        let d = Q.defer<StorageItem>();
-        this._ee = new AsyncEventEmitter();
+        let d = Q.defer<ReactiveDocument>();
 
         // Registers on error.
         _pee.on("error", (err: Error) => this._emitError(err));
@@ -21,38 +22,67 @@ export abstract class StorageItem implements IStorageItem {
     /**
      * promise that states the entry is ready.
      */
-    get promise(): Promise<StorageItem> {
+    public get promise(): Promise<ReactiveDocument> {
         return this._promise;
     }
 
     /**
      * is the item (or promise) pending for being created
      */
-    get isPending(): boolean {
+    public get isPending(): boolean {
         return this._d.promise.isPending();
     }
 
     /**
      * key of the entry in the holding storage.
      */
-    get key(): string {
+    public get key(): string {
         return this._key;
+    }
+
+    /**
+     * @returns dictionary representation of the document.
+     */
+    public read(): { [key: string]: any } {
+        let reactiveKeys: Array<string> = Reflect.getMetadata("rd:reactiveKeys", Object.getPrototypeOf(this));
+        let ret: { [key: string]: any } = {
+            "key": this.key,
+        };
+
+        for ( let key of reactiveKeys ) {
+            if ( false === ret.hasOwnProperty(key) ) {
+                ret[key] = this[key];
+            }
+        }
+
+        return ret;
+    }
+
+    /**
+     * registers event handler for update event.
+     * @param handler to be called when the entry is updated.
+     */
+    public onUpdate(handler: (updateInfo: IReactiveUpdate) => void | Promise<void>): void {
+        let ee: AsyncEventEmitter = getReactiveEmitter(this);
+        ee.on("update", handler);
     }
 
     /**
      * registers event handler for error event.
      * @param handler to be called when the entry is closed.
      */
-    public onError (handler: (err: Error) => Promise<void> | void): void {
-        this._ee.on("error", handler);
+    public onError(handler: (errorInfo: IReactiveError) => void | Promise<void>): void {
+        let ee: AsyncEventEmitter = getReactiveEmitter(this);
+        ee.on("error", handler);
     }
 
     /**
-     * registers event handler for close event.
-     * @param handler to be called when the entry is closed.
+     * registers event handler for deleted event.
+     * @param handler to be called when the entry is deleted.
      */
-    public onClose(handler: () => Promise<void> | void): void {
-        this._ee.once("close", handler);
+    public onDelete(handler: (key: string) => void | Promise<void>): void {
+        let ee: AsyncEventEmitter = getReactiveEmitter(this);
+        ee.on("delete", handler);
     }
 
     /**
@@ -60,8 +90,8 @@ export abstract class StorageItem implements IStorageItem {
      * is redundant and can be removed.
      * @returns true if event was handled, false otherwise.
      */
-    protected _emitClose(): Promise<void> {
-        return this._ee.emitAsync<void>("close").then(() => {/*pass*/});
+    protected _emitDelete(): Promise<void> {
+        return this._ee.emitAsync<void>("delete").then(() => {/*pass*/});
     }
 
     /**
@@ -73,7 +103,7 @@ export abstract class StorageItem implements IStorageItem {
     protected _emitError(err: Error): Promise<void> {
         if ( true === this.isPending ) {
             this._d.reject(err);
-            return this._emitClose();
+            return this._emitDelete();
         } else {
             return this._ee.emitAsync("error", err).then(() => {/*ignore*/});
         }
@@ -86,10 +116,10 @@ export abstract class StorageItem implements IStorageItem {
      * @param d new deferred object that will be used for resolve.
      * @returns promise that will be fired only when state transaction is done.
      */
-    protected _resetDeferred(d: Q.Deferred<StorageItem>): Promise<void> {
-        let cb = (object: StorageItem) => {
+    protected _resetDeferred(d: Q.Deferred<ReactiveDocument>): Promise<void> {
+        let cb = (object: ReactiveDocument) => {
             this._d = d;
-            this._promise = new Promise<StorageItem>((resolve, reject) => {
+            this._promise = new Promise<ReactiveDocument>((resolve, reject) => {
                 resolve(this._d.promise);
             });
         };

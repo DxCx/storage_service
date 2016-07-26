@@ -1,7 +1,7 @@
 "use strict";
 
 import { AsyncEventEmitter } from "ts-async-eventemitter";
-import { IStorageItem } from "./Interfaces";
+import { IReactiveDocument, IReactiveCollection, IReactiveUpdate, IReactiveError } from "./Interfaces";
 
 interface IDBEntry<T> {
     item: T;
@@ -11,13 +11,26 @@ interface IDBEntry<T> {
 /**
  * Base class used for storing information.
  */
-export abstract class StorageService<T extends IStorageItem> {
+export abstract class ReactiveCollection<T extends IReactiveDocument> implements IReactiveCollection<T> {
     protected _ee: AsyncEventEmitter;
     private _db: Array<IDBEntry<T>>;
 
     constructor() {
         this._db = new Array<IDBEntry<T>>();
         this._ee = new AsyncEventEmitter();
+    }
+
+    /**
+     * @returns an array of dictionary representation of the documents.
+     */
+    public read(): { [key: string]: any }[] {
+        let results: Array<{ [key: string]: any }> = new Array<{ [key: string]: any }>();
+
+        for ( let doc of this.items() ) {
+            results[doc.key] = doc.read();
+        }
+
+        return results;
     }
 
     /**
@@ -58,19 +71,35 @@ export abstract class StorageService<T extends IStorageItem> {
     }
 
     /**
-     * Registers handler for item added to storage event.
-     * @param handler to be called when new item is added.
+     * registers event handler for insert event.
+     * @param handler to be called when the entry is created.
      */
-    public onAdded(handler: (entry: T) => void): void {
-        this._ee.on("added", handler);
+    public onInsert(handler: (newItem: T) => void | Promise<void>): void {
+        this._ee.on("insert", handler);
     }
 
     /**
-     * Registers handler for item removed from storage event.
-     * @param handler to be called when item is removed.
+     * registers event handler for update event.
+     * @param handler to be called when the entry is updated.
      */
-    public onRemoved(handler: (entry: T) => void): void {
-        this._ee.on("removed", handler);
+    public onUpdate(handler: (updateInfo: IReactiveUpdate) => void | Promise<void>): void {
+        this._ee.on("update", handler);
+    }
+
+    /**
+     * registers event handler for error event.
+     * @param handler to be called when the entry is closed.
+     */
+    public onError(handler: (errorInfo: IReactiveError) => void | Promise<void>): void {
+        this._ee.on("error", handler);
+    }
+
+    /**
+     * registers event handler for deleted event.
+     * @param handler to be called when the entry is deleted.
+     */
+    public onDelete(handler: (key: string) => void | Promise<void>): void {
+        this._ee.on("delete", handler);
     }
 
     /**
@@ -112,14 +141,14 @@ export abstract class StorageService<T extends IStorageItem> {
             let doneCb = () => {
                 delete this._db[key];
                 if ( true === isItemResolved ) {
-                    return this._ee.emitAsync<void>("removed", o.item).then(() => {/*ignore*/});
+                    return this._ee.emitAsync<void>("delete", o.item).then(() => {/*ignore*/});
                 }
             };
 
-            o.item.onClose(doneCb);
+            o.item.onDelete(doneCb);
             o.item.promise.then(() => {
                 isItemResolved = true;
-                return this._ee.emitAsync<void>("added", o.item);
+                return this._ee.emitAsync<void>("insert", o.item);
             }, (errObj: Error) => {
                 doneCb();
                 throw errObj;
