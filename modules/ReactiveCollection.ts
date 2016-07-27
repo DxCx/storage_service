@@ -141,13 +141,24 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
             let doneCb = () => {
                 delete this._db[key];
                 if ( true === isItemResolved ) {
-                    return this._ee.emitAsync<void>("delete", o.item).then(() => {/*ignore*/});
+                    return this._ee.emitAsync<void>("delete", o.item.key).then(() => {/*ignore*/});
                 }
             };
 
-            o.item.onDelete(doneCb);
+            o.item.onError((errObject: IReactiveError) => {
+                o.item.promise.then(() => {
+                    return this._ee.emitAsync<void>("error", errObject).then(() => {/*ignore*/});
+                });
+            });
+            o.item.onUpdate((updateObject: IReactiveUpdate) => {
+                o.item.promise.then(() => {
+                    return this._ee.emitAsync<void>("update", updateObject).then(() => {/*ignore*/});
+                });
+            });
+
             o.item.promise.then(() => {
                 isItemResolved = true;
+                o.item.onDelete(doneCb);
                 return this._ee.emitAsync<void>("insert", o.item);
             }, (errObj: Error) => {
                 doneCb();

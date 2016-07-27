@@ -3,7 +3,7 @@
 import * as Q from "q";
 import { AsyncEventEmitter } from "ts-async-eventemitter";
 import { IReactiveDocument, IReactiveUpdate, IReactiveError } from "./Interfaces";
-import { ReactiveEmitter, getReactiveEmitter } from "./ReactiveEmitter";
+import { ReactiveEmitter } from "./ReactiveEmitter";
 
 export abstract class ReactiveDocument implements IReactiveDocument {
     @ReactiveEmitter("update")
@@ -13,9 +13,11 @@ export abstract class ReactiveDocument implements IReactiveDocument {
 
     constructor (protected _pee: AsyncEventEmitter, private _key: string) {
         let d = Q.defer<ReactiveDocument>();
+        this._ee = new AsyncEventEmitter();
 
         // Registers on error.
         _pee.on("error", (err: Error) => this._emitError(err));
+        _pee.on("delete", (err: Error) => this._emitDelete());
         this._resetDeferred(d);
     }
 
@@ -44,7 +46,9 @@ export abstract class ReactiveDocument implements IReactiveDocument {
      * @returns dictionary representation of the document.
      */
     public read(): { [key: string]: any } {
-        let reactiveKeys: Array<string> = Reflect.getMetadata("rd:reactiveKeys", Object.getPrototypeOf(this));
+        let className: string = Object.getPrototypeOf(this).constructor.name;
+        let reactiveKeysKey: string = `rd:reactiveKeys:${className}`;
+        let reactiveKeys: Array<string> = Reflect.getMetadata(reactiveKeysKey, Object.getPrototypeOf(this));
         let ret: { [key: string]: any } = {
             "key": this.key,
         };
@@ -63,8 +67,7 @@ export abstract class ReactiveDocument implements IReactiveDocument {
      * @param handler to be called when the entry is updated.
      */
     public onUpdate(handler: (updateInfo: IReactiveUpdate) => void | Promise<void>): void {
-        let ee: AsyncEventEmitter = getReactiveEmitter(this);
-        ee.on("update", handler);
+        this._ee.on("update", handler);
     }
 
     /**
@@ -72,8 +75,7 @@ export abstract class ReactiveDocument implements IReactiveDocument {
      * @param handler to be called when the entry is closed.
      */
     public onError(handler: (errorInfo: IReactiveError) => void | Promise<void>): void {
-        let ee: AsyncEventEmitter = getReactiveEmitter(this);
-        ee.on("error", handler);
+        this._ee.on("error", handler);
     }
 
     /**
@@ -81,8 +83,7 @@ export abstract class ReactiveDocument implements IReactiveDocument {
      * @param handler to be called when the entry is deleted.
      */
     public onDelete(handler: (key: string) => void | Promise<void>): void {
-        let ee: AsyncEventEmitter = getReactiveEmitter(this);
-        ee.on("delete", handler);
+        this._ee.on("delete", handler);
     }
 
     /**
@@ -91,7 +92,9 @@ export abstract class ReactiveDocument implements IReactiveDocument {
      * @returns true if event was handled, false otherwise.
      */
     protected _emitDelete(): Promise<void> {
-        return this._ee.emitAsync<void>("delete").then(() => {/*pass*/});
+        return this._ee.emitAsync<void>("delete", this.key).then(() => {
+            this._ee.removeAllListeners();
+        });
     }
 
     /**
@@ -105,7 +108,10 @@ export abstract class ReactiveDocument implements IReactiveDocument {
             this._d.reject(err);
             return this._emitDelete();
         } else {
-            return this._ee.emitAsync("error", err).then(() => {/*ignore*/});
+            return this._ee.emitAsync("error", <IReactiveError> {
+                error: err,
+                key: this.key,
+            }).then(() => {/*ignore*/});
         }
     }
 

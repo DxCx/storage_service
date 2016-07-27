@@ -7,13 +7,20 @@ import { getReactiveEmitter } from "./ReactiveEmitter";
 
 export function ReactiveProperty(): any {
     return function (target: any, propertyKey: string, value?: any) {
+        if ( (undefined === propertyKey) ||
+             ((undefined !== value) &&
+              ((typeof value === "number") ||
+              (typeof value.value === "function"))) ) {
+            throw new Error("ReactiveProperty can be used only as property decorator");
+        }
+
         let emitterName: string = Reflect.getMetadata("rd:ReactiveEmitterApplied", target);
         if ( undefined === emitterName  ) {
             throw new Error("ReactiveEmitter was not applied!");
         }
-        let reactiveKeys: Array<string> = Reflect.getMetadata("rd:reactiveKeys", target);
+        let reactiveKeys: Array<string> = Reflect.getMetadata(`rd:reactiveKeys:${target.constructor.name}`, target);
         if ( undefined === reactiveKeys ) {
-            throw new Error("Reactive Property must be used on a ReactiveDocument");
+            reactiveKeys = new Array<string>();
         }
 
         let descriptor = Object.getOwnPropertyDescriptor(target, propertyKey);
@@ -61,7 +68,7 @@ export function ReactiveProperty(): any {
         descriptor.configurable = false;
 
         reactiveKeys.push(propertyKey);
-        Reflect.defineMetadata("rd:reactiveKeys", reactiveKeys, target);
+        Reflect.defineMetadata(`rd:reactiveKeys:${target.constructor.name}`, reactiveKeys, target);
         if ( undefined === originalDescriptor ) {
             Object.defineProperty(target, propertyKey, descriptor);
             return;

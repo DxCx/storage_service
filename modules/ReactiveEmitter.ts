@@ -4,31 +4,28 @@ import "reflect-metadata";
 import { AsyncEventEmitter } from "ts-async-eventemitter";
 
 export function ReactiveEmitter(updateEventName: string): any {
+    if ( undefined === updateEventName ) {
+        throw new Error("ReactiveEmitter must be provided with a valid event name for update");
+    }
+
     return function (target: any, propertyKey: string, value?: any) {
-        let descriptor = Object.getOwnPropertyDescriptor(target, propertyKey);
-        let originalDescriptor: PropertyDescriptor = descriptor;
-        descriptor = (undefined !== descriptor) ? descriptor : <PropertyDescriptor> {};
+        if ( (undefined === propertyKey) ||
+             ((undefined !== value) &&
+              ((typeof value === "number") ||
+              (typeof value.value === "function"))) ) {
+            throw new Error("ReactiveEmitter can be used only as property decorator");
+        }
 
         if ( true === Reflect.hasMetadata("rd:ReactiveEmitterApplied", target) ) {
             throw new Error("ReactiveEmitter is already applied!");
         }
 
-        if ( undefined === value ) {
-            descriptor.value = new AsyncEventEmitter();
-        } else {
-            descriptor.value = value;
-        }
+        // TODO: Is there a way to construct the event emitter for each
+        // object that will be generated in the future?
+        // if i try to set a DataDescriptor it acts like static :(
 
         Reflect.defineMetadata("rd:ReactiveEmitterApplied", propertyKey, target);
         Reflect.defineMetadata("rd:ReactiveEventName", updateEventName, target);
-        Reflect.defineMetadata("rd:reactiveKeys", new Array<string>(), target);
-
-        if ( undefined === originalDescriptor ) {
-            Object.defineProperty(target, propertyKey, descriptor);
-            return;
-        } else {
-            return descriptor;
-        }
     };
 }
 

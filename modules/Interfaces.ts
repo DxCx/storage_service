@@ -29,6 +29,20 @@ export interface IReactiveCollection<T> {
      * @param handler to be called when the entry is deleted.
      */
     onDelete(handler: (key: string) => void | Promise<void>): void;
+
+    /**
+     * The method is used to search for specific key in storage.
+     * @param key to search
+     * @returns promise that will resolve if key exists in storage, reject otherwise.
+     */
+    hasEntry(key: string): Promise<void>;
+
+    /**
+     * The method is used to query an entry by key.
+     * @param key to search
+     * @returns required entry, will be rejected if entry not found.
+     */
+    getEntry(key: string): Promise<T>;
 }
 
 export interface IReactiveUpdate {

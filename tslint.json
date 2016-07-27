@@ -2,6 +2,7 @@
 	"extends": "tslint:recommended",
 	"rules": {
 		"variable-name": "allow-leading-underscore",
+		"no-var-requires": false,
 		"use-strict": true
 	}
 }
