@@ -577,7 +577,6 @@ describe("ReactiveCollection", () => {
 
         expect(testPhonebook.onDelete).to.be.a("function");
         testPhonebook.onDelete((key: string) => {
-            console.log(key);
             expect(key).be.equal("Hodor");
             p1.resolve(undefined);
         });
