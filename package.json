@@ -1,7 +1,7 @@
 {
   "name": "storage_service",
   "version": "0.0.13",
-  "description": "Generic Helper for memory mangment with events",
+  "description": "Generic Helper for memory management with events",
   "main": "lib/main.js",
   "typings": "lib/main.d.ts",
   "scripts": {
@@ -18,7 +18,10 @@
   },
   "keywords": [
     "memory",
-    "manager"
+    "manager",
+    "storage",
+    "reactive",
+    "collection"
   ],
   "author": "Hagai Cohen",
   "license": "MIT",

@@ -6,6 +6,68 @@ import { AsyncEventEmitter } from "ts-async-eventemitter";
 import { use as chaiUse, expect, should } from "chai";
 import * as Q from "q";
 
+type GenderType = "male" | "female";
+
+class PhonebookEntry extends ReactiveDocument {
+    @ReactiveProperty()
+    public name: string;
+
+    public get age(): number {
+        return this._age;
+    }
+
+    @ReactiveProperty()
+    public set age(value: number) {
+        this._age = value;
+    }
+
+    @ReactiveProperty()
+    protected gender: GenderType;
+    protected _age: number = undefined;
+
+    constructor(pee: AsyncEventEmitter, name: string, gender: GenderType, age?: number) {
+        super(pee, name);
+        if ( name.length === 0 ) {
+            throw new Error("name must be provided");
+        }
+
+        this.name = name;
+        this.gender = gender;
+        if ( undefined !== age ) {
+            this._age = age;
+        }
+        this._resolved();
+    }
+
+    public getGender(): GenderType {
+        return this.gender;
+    }
+
+    public kill(): Promise<void> {
+        return this._emitDelete();
+    }
+
+    public error(e: Error): Promise<void> {
+        return this._emitError(e);
+    }
+}
+
+class Phonebook extends ReactiveCollection<PhonebookEntry> {
+    public insert(name: string, gender: GenderType, age?: number): Promise<PhonebookEntry> {
+        return this._allocateEntry(name, gender, age).then((item: PhonebookEntry) => {
+            return item.promise;
+        });
+    }
+
+    protected _newEntry(pee: AsyncEventEmitter, name: string, gender: GenderType, age?: number): PhonebookEntry {
+        return new PhonebookEntry(pee, name, gender, age);
+    }
+
+    protected _allocateEntry(name: string, gender: GenderType, age?: number): Promise<PhonebookEntry> {
+        return super._addEntry(name, gender, age);
+    }
+}
+
 // Init framework.
 chaiUse(require("chai-as-promised"));
 should();
@@ -213,8 +275,8 @@ describe("ReactiveDocument", () => {
         let test: any = new ReactiveDocumentPromiseTest(new AsyncEventEmitter(), "test");
 
         expect(test.promise).be.instanceof(Promise);
-        test.promise.should.be.fulfilled.and.notify(done);
         test.promise.should.eventually.become(test);
+        test.promise.should.be.fulfilled.and.notify(done);
         test.resolve();
     });
 
@@ -292,8 +354,7 @@ describe("ReactiveDocument", () => {
             return ee.emitAsync("error", new Error("onError Test!")).then(() => {
                 done();
             }, (err) => {
-                // console.error(err);
-                throw err;
+                done(err);
             });
         });
     });
@@ -313,9 +374,14 @@ describe("ReactiveDocument", () => {
         expect(test.onUpdate).to.be.a("function");
 
         test.onUpdate((updateObject: IReactiveUpdate) => {
-            expect(updateObject.key).be.equal("test");
-            expect(updateObject.field).be.equal("name");
-            expect(updateObject.value).be.equal("newName");
+            try {
+                expect(updateObject.key).be.equal("test");
+                expect(updateObject.field).be.equal("name");
+                expect(updateObject.value).be.equal("newName");
+            } catch (e) {
+                done(e);
+            }
+
             done();
         });
 
@@ -384,7 +450,11 @@ describe("ReactiveDocument", () => {
 
         Q.all([p1.promise,
                p2.promise,
-               p3.promise]).should.be.fulfilled.and.notify(done);
+               p3.promise]).then(() => {
+                   done();
+               }).catch((err) => {
+                   done(err);
+               });
     });
 
     it("Should have a working internal delete mechanizem", (done) => {
@@ -406,8 +476,12 @@ describe("ReactiveDocument", () => {
 
         test.promise.should.be.fulfilled.and.notify(() => {
             return ee.emitAsync("delete").should.be.fulfilled.and.notify(() => {
-                return p1.promise.should.be.fulfilled.and.notify(done);
+                return p1.promise;
             });
+        }).then(() => {
+            done();
+        }).catch((err: Error) => {
+            done(err);
         });
     });
 
@@ -431,8 +505,12 @@ describe("ReactiveDocument", () => {
             p1.resolve(undefined);
         });
 
-        test.del().should.be.fulfilled.and.notify(() => {
-            return p1.promise.should.be.fulfilled.and.notify(done);
+        test.del().then(() => {
+            return p1.promise;
+        }).then(() => {
+            done();
+        }).catch((err: Error) => {
+            done(err);
         });
     });
 
@@ -451,7 +529,7 @@ describe("ReactiveDocument", () => {
         let test: any = new ReactiveDocumentReadTest(new AsyncEventEmitter(), "test");
         expect(test.read).to.be.a("function");
 
-        test.promise.should.be.fulfilled.and.notify(() => {
+        test.promise.then(() => {
             let readResult: { [key: string]: any } = test.read();
             expect(readResult).to.be.a("object");
             expect(Object.getOwnPropertyNames(readResult).length).be.equal(2);
@@ -477,6 +555,8 @@ describe("ReactiveDocument", () => {
             expect(test.foo).be.equal("bar");
 
             done();
+        }).catch((err: Error) => {
+            done(err);
         });
     });
 });
@@ -520,9 +600,11 @@ describe("ReactiveCollection", () => {
                 return testPhonebook.insert("John", "male", 36).then(() => {
                     return p1.promise;
                 });
-            }).should.be.fulfilled.and.notify(() => {
-                done();
             });
+        }).then(() => {
+            done();
+        }).catch((err) => {
+            done(err);
         });
     });
 
@@ -534,14 +616,20 @@ describe("ReactiveCollection", () => {
 
         expect(testPhonebook.onUpdate).to.be.a("function");
         testPhonebook.onUpdate((updateObject: IReactiveUpdate) => {
-            expect(updateObject.key).be.equal("Tryon");
-            expect(updateObject.field).be.equal("age");
-            expect(updateObject.value).be.equal(30);
-            p1.resolve(undefined);
+            try {
+                expect(updateObject.key).be.equal("Tryon");
+                expect(updateObject.field).be.equal("age");
+                expect(updateObject.value).be.equal(30);
+                p1.resolve(undefined);
+            } catch (e) {
+                done(e);
+            }
         });
 
         testPhonebook.insert("Tryon", "male").then((entry: PhonebookEntry) => {
             entry.age = 30;
+        }).catch((err) => {
+            done(err);
         });
 
         p1.promise.should.be.fulfilled.and.notify(done);
@@ -563,7 +651,9 @@ describe("ReactiveCollection", () => {
         });
 
         testPhonebook.insert("Hodor", "male").then((entry: PhonebookEntry) => {
-            entry.error(new Error("Hodor already died? :("));
+            return entry.error(new Error("Hodor already died? :("));
+        }).catch((err) => {
+            done(err);
         });
 
         p1.promise.should.be.fulfilled.and.notify(done);
@@ -582,7 +672,9 @@ describe("ReactiveCollection", () => {
         });
 
         testPhonebook.insert("Hodor", "male").then((entry: PhonebookEntry) => {
-            entry.kill();
+            return entry.kill();
+        }).catch((err) => {
+            done(err);
         });
 
         p1.promise.should.be.fulfilled.and.notify(done);
@@ -592,94 +684,89 @@ describe("ReactiveCollection", () => {
         expect(() => {
             testPhonebook = new Phonebook();
         }).to.not.throw(Error);
+        let p1: Q.Deferred<void> = Q.defer<void>();
 
         expect(testPhonebook.read).to.be.a("function");
+        testPhonebook.insert("Ned", "male").then((ned: PhonebookEntry) => {
+            return testPhonebook.insert("Katlin", "female").then((katlin: PhonebookEntry) => {
+                return testPhonebook.insert("Rob", "male").then((rob: PhonebookEntry) => {
+                    return rob.kill().then(() => {
+                        let readResults: { [key: string]: any }[] = testPhonebook.read();
 
-        /* TODO */
-        done();
+                        expect(Object.keys(readResults).length).to.be.equal(2);
+                        expect(readResults[ned.key]).to.have.property("key")
+                            .that.is.a("string")
+                            .that.equals("Ned");
+                        expect(readResults[ned.key]).to.have.property("gender")
+                            .that.is.a("string")
+                            .that.equals("male");
+
+                        expect(readResults[katlin.key]).to.have.property("key")
+                            .that.is.a("string")
+                            .that.equals("Katlin");
+                        expect(readResults[katlin.key]).to.have.property("gender")
+                            .that.is.a("string")
+                            .that.equals("female");
+                        p1.resolve(undefined);
+                    });
+                });
+            });
+        }).catch((err) => {
+            done(err);
+        });
+
+        p1.promise.should.be.fulfilled.and.notify(done);
     });
 
     it("Should have a working hasEntry mechanizem", (done) => {
         expect(() => {
             testPhonebook = new Phonebook();
         }).to.not.throw(Error);
+        let p1: Q.Deferred<void> = Q.defer<void>();
 
         expect(testPhonebook.hasEntry).to.be.a("function");
+        testPhonebook.insert("Ned", "male").then((ned: PhonebookEntry) => {
+            return testPhonebook.insert("Katlin", "female").then((katlin: PhonebookEntry) => {
+                return testPhonebook.insert("Rob", "male").then((rob: PhonebookEntry) => {
+                    return rob.kill().then(() => {
+                        return Q.all([
+                            testPhonebook.hasEntry("Rob").should.be.rejected,
+                            testPhonebook.hasEntry("Ned").should.be.fulfilled,
+                            testPhonebook.hasEntry("Katlin").should.be.fulfilled,
+                        ]).then(() => p1.resolve(undefined));
+                    });
+                });
+            });
+        }).catch((err) => {
+            done(err);
+        });
 
-        /* TODO */
-        done();
+        p1.promise.should.be.fulfilled.and.notify(done);
     });
 
     it("Should have a working getEntry mechanizem", (done) => {
         expect(() => {
             testPhonebook = new Phonebook();
         }).to.not.throw(Error);
+        let p1: Q.Deferred<void> = Q.defer<void>();
 
         expect(testPhonebook.getEntry).to.be.a("function");
+        testPhonebook.insert("Ned", "male").then((ned: PhonebookEntry) => {
+            return testPhonebook.insert("Katlin", "female").then((katlin: PhonebookEntry) => {
+                return testPhonebook.insert("Rob", "male").then((rob: PhonebookEntry) => {
+                    return rob.kill().then(() => {
+                        return Q.all([
+                            testPhonebook.getEntry("Rob").should.be.rejected,
+                            testPhonebook.getEntry("Ned").should.be.fulfilled,
+                            testPhonebook.getEntry("Katlin").should.be.fulfilled,
+                        ]).then(() => p1.resolve(undefined));
+                    });
+                });
+            });
+        }).catch((err) => {
+            done(err);
+        });
 
-        /* TODO */
-        done();
+        p1.promise.should.be.fulfilled.and.notify(done);
     });
 });
-
-type GenderType = "male" | "female";
-
-class PhonebookEntry extends ReactiveDocument {
-    @ReactiveProperty()
-    public name: string;
-
-    public get age(): number {
-        return this._age;
-    }
-
-    @ReactiveProperty()
-    public set age(value: number) {
-        this._age = value;
-    }
-
-    @ReactiveProperty()
-    protected gender: GenderType;
-    protected _age: number = undefined;
-
-    constructor(pee: AsyncEventEmitter, name: string, gender: GenderType, age?: number) {
-        super(pee, name);
-        if ( name.length === 0 ) {
-            throw new Error("name must be provided");
-        }
-
-        this.name = name;
-        this.gender = gender;
-        if ( undefined !== age ) {
-            this._age = age;
-        }
-        this._resolved();
-    }
-
-    public getGender(): GenderType {
-        return this.gender;
-    }
-
-    public kill(): Promise<void> {
-        return this._emitDelete();
-    }
-
-    public error(e: Error): Promise<void> {
-        return this._emitError(e);
-    }
-}
-
-class Phonebook extends ReactiveCollection<PhonebookEntry> {
-    public insert(name: string, gender: GenderType, age?: number): Promise<PhonebookEntry> {
-        return this._allocateEntry(name, gender, age).then((item: PhonebookEntry) => {
-            return item.promise;
-        });
-    }
-
-    protected _newEntry(pee: AsyncEventEmitter, name: string, gender: GenderType, age?: number): PhonebookEntry {
-        return new PhonebookEntry(pee, name, gender, age);
-    }
-
-    protected _allocateEntry(name: string, gender: GenderType, age?: number): Promise<PhonebookEntry> {
-        return super._addEntry(name, gender, age);
-    }
-}
