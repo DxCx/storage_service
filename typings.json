@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "globalDependencies": {
     "core-decorators": "registry:dt/core-decorators#0.10.0+20160316155526",
-    "node": "registry:dt/node#6.0.0+20160720070758",
+    "node": "registry:dt/node#6.0.0+20160728152422",
     "q": "registry:dt/q#0.0.0+20160613154756"
   },
   "dependencies": {

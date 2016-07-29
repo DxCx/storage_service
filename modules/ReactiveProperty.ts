@@ -5,6 +5,8 @@ import { AsyncEventEmitter } from "ts-async-eventemitter";
 import { IReactiveUpdate } from "./Interfaces";
 import { getReactiveEmitter } from "./ReactiveEmitter";
 
+const RP_KEY: string = "_REACTIVE_PROPERTIES";
+
 export function ReactiveProperty(): any {
     return function (target: any, propertyKey: string, value?: any) {
         if ( (undefined === propertyKey) ||
@@ -34,14 +36,23 @@ export function ReactiveProperty(): any {
         }
 
         if ( undefined === originalGet ) {
-            originalGet = (): any => {
-                return descriptor.value;
+            originalGet = function (): any {
+                if ( undefined === this[RP_KEY] ) {
+                    this[RP_KEY] = new Array();
+                    return undefined;
+                }
+
+                return this[RP_KEY][propertyKey];
             };
         }
 
         if ( undefined === originalSet ) {
-            originalSet = (newValue: any): void => {
-                descriptor.value = newValue;
+            originalSet = function (newValue: any): void {
+                if ( undefined === this.hasOwnProperty(RP_KEY) ) {
+                    this[RP_KEY] = new Array();
+                }
+
+                this[RP_KEY][propertyKey] = newValue;
             };
         }
 
@@ -69,6 +80,15 @@ export function ReactiveProperty(): any {
 
         reactiveKeys.push(propertyKey);
         Reflect.defineMetadata(`rd:reactiveKeys:${target.constructor.name}`, reactiveKeys, target);
+        if ( undefined === Object.getOwnPropertyDescriptor(target, RP_KEY) ) {
+            Object.defineProperty(target, RP_KEY, {
+                configurable: false,
+                enumerable: false,
+                value: undefined,
+                writable: true,
+            });
+        }
+
         if ( undefined === originalDescriptor ) {
             Object.defineProperty(target, propertyKey, descriptor);
             return;
