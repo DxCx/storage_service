@@ -66,24 +66,24 @@ export abstract class ReactiveDocument implements IReactiveDocument {
      * registers event handler for update event.
      * @param handler to be called when the entry is updated.
      */
-    public onUpdate(handler: (updateInfo: IReactiveUpdate) => void | Promise<void>): void {
-        this._ee.on("update", handler);
+    public onUpdate(handler: (updateInfo: IReactiveUpdate) => void | Promise<void>): () => void {
+        return this._registerEvent("update", handler);
     }
 
     /**
      * registers event handler for error event.
      * @param handler to be called when the entry is closed.
      */
-    public onError(handler: (errorInfo: IReactiveError) => void | Promise<void>): void {
-        this._ee.on("error", handler);
+    public onError(handler: (errorInfo: IReactiveError) => void | Promise<void>): () => void {
+        return this._registerEvent("error", handler);
     }
 
     /**
      * registers event handler for deleted event.
      * @param handler to be called when the entry is deleted.
      */
-    public onDelete(handler: (key: string) => void | Promise<void>): void {
-        this._ee.on("delete", handler);
+    public onDelete(handler: (key: string) => void | Promise<void>): () => void {
+        return this._registerEvent("delete", handler);
     }
 
     /**
@@ -146,5 +146,19 @@ export abstract class ReactiveDocument implements IReactiveDocument {
         }
 
         this._d.resolve(this);
+    }
+
+    /**
+     * The method is used to register event on the event emitter
+     * and return a function to unsubscribe it.
+     * @param eventName event to register on
+     * @param handler handler to call when event triggers
+     * @returns unsubscribe function to call when done
+     */
+    private _registerEvent<T>(eventName: string, handler: (...args: any[]) => T | Promise<T>): () => void {
+        this._ee.on(eventName, handler);
+        return () => {
+            this._ee.removeListener(eventName, handler);
+        };
     }
 }

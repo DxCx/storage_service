@@ -9,26 +9,30 @@ export interface IReactiveCollection<T> {
     /**
      * registers event handler for insert event.
      * @param handler to be called when the entry is created.
+     * @returns function to remove subscription.
      */
-    onInsert(handler: (newItem: T) => void | Promise<void>): void;
+    onInsert(handler: (newItem: T) => void | Promise<void>): () => void;
 
     /**
      * registers event handler for update event.
      * @param handler to be called when the entry is updated.
+     * @returns function to remove subscription.
      */
-    onUpdate(handler: (updateInfo: IReactiveUpdate) => void | Promise<void>): void;
+    onUpdate(handler: (updateInfo: IReactiveUpdate) => void | Promise<void>): () => void;
 
     /**
      * registers event handler for error event.
      * @param handler to be called when the entry is closed.
+     * @returns function to remove subscription.
      */
-    onError(handler: (errorInfo: IReactiveError) => void | Promise<void>): void;
+    onError(handler: (errorInfo: IReactiveError) => void | Promise<void>): () => void;
 
     /**
      * registers event handler for deleted event.
      * @param handler to be called when the entry is deleted.
+     * @returns function to remove subscription.
      */
-    onDelete(handler: (key: string) => void | Promise<void>): void;
+    onDelete(handler: (key: string) => void | Promise<void>): () => void;
 
     /**
      * The method is used to search for specific key in storage.
@@ -98,18 +102,21 @@ export interface IReactiveDocument {
     /**
      * registers event handler for update event.
      * @param handler to be called when the entry is updated.
+     * @returns function to remove subscription.
      */
-    onUpdate(handler: (updateInfo: IReactiveUpdate) => void | Promise<void>): void;
+    onUpdate(handler: (updateInfo: IReactiveUpdate) => void | Promise<void>): () => void;
 
     /**
      * registers event handler for error event.
      * @param handler to be called when the entry is closed.
+     * @returns function to remove subscription.
      */
-    onError(handler: (errorInfo: IReactiveError) => void | Promise<void>): void;
+    onError(handler: (errorInfo: IReactiveError) => void | Promise<void>): () => void;
 
     /**
      * registers event handler for deleted event.
      * @param handler to be called when the entry is deleted.
+     * @returns function to remove subscription.
      */
-    onDelete(handler: (key: string) => void | Promise<void>): void;
+    onDelete(handler: (key: string) => void | Promise<void>): () => void;
 }

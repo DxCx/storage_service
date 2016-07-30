@@ -359,6 +359,32 @@ describe("ReactiveDocument", () => {
         });
     });
 
+    it("Should have a working onError unsubscribe", (done) => {
+        class ReactiveDocumentErrorTest extends ReactiveDocument {
+            constructor(pee: AsyncEventEmitter, key: string) {
+                super(pee, key);
+                this._resolved();
+            }
+        }
+
+        let ee: AsyncEventEmitter = new AsyncEventEmitter();
+        let test: any = new ReactiveDocumentErrorTest(ee, "test");
+
+        expect(test.onError).to.be.a("function");
+        let unsubscribe: () => void = test.onError(() => {
+            done(new Error("onError called altough it should be unsubscribed"));
+        });
+        unsubscribe();
+
+        test.promise.should.be.fulfilled.and.notify(() => {
+            return ee.emitAsync("error", new Error("onError Test!")).then(() => {
+                done();
+            }, (err) => {
+                done(err);
+            });
+        });
+    });
+
     it("Should have a working onUpdate mechanizem", (done) => {
         class ReactiveDocumentOnUpdateTest extends ReactiveDocument {
             @ReactiveProperty()
@@ -387,6 +413,33 @@ describe("ReactiveDocument", () => {
 
         test.promise.should.be.fulfilled.and.notify(() => {
             test.name = "newName";
+        });
+    });
+
+    it("Should have a working onUpdate unsubscribe", (done) => {
+        class ReactiveDocumentOnUpdateTest extends ReactiveDocument {
+            @ReactiveProperty()
+            public name: string;
+
+            constructor(pee: AsyncEventEmitter, key: string) {
+                super(pee, key);
+                this._resolved();
+            }
+        }
+
+        let test: any = new ReactiveDocumentOnUpdateTest(new AsyncEventEmitter(), "test");
+        expect(test.onUpdate).to.be.a("function");
+        let unsubscribe: () => void = test.onUpdate(() => {
+            done(new Error("onUpdate called altough it should be unsubscribed"));
+        });
+        unsubscribe();
+
+        test.promise.should.be.fulfilled.and.notify(() => {
+            test.name = "newName";
+        }).then(() => {
+            done();
+        }).catch((err: Error) => {
+            done(err);
         });
     });
 
@@ -514,6 +567,32 @@ describe("ReactiveDocument", () => {
         });
     });
 
+    it("Should have a working onDelete unsubscribe", (done) => {
+        class ReactiveDocumentDeleteTest extends ReactiveDocument {
+            constructor(pee: AsyncEventEmitter, key: string) {
+                super(pee, key);
+                this._resolved();
+            }
+
+            public del(): Promise<void> {
+                return this._emitDelete();
+            }
+        }
+
+        let test: any = new ReactiveDocumentDeleteTest(new AsyncEventEmitter(), "testDelete");
+
+        let unsubscribe: () => void = test.onDelete((key: string) => {
+            done(new Error("onDelete called altough it should be unsubscribed"));
+        });
+        unsubscribe();
+
+        test.del().then(() => {
+            done();
+        }).catch((err: Error) => {
+            done(err);
+        });
+    });
+
     it("Should have a working read", (done) => {
         class ReactiveDocumentReadTest extends ReactiveDocument {
             @ReactiveProperty()
@@ -608,6 +687,24 @@ describe("ReactiveCollection", () => {
         });
     });
 
+    it("Should have a working onInsert unsubscribe", (done) => {
+        expect(() => {
+            testPhonebook = new Phonebook();
+        }).to.not.throw(Error);
+
+        expect(testPhonebook.onInsert).to.be.a("function");
+        let unsubscribe: () => void = testPhonebook.onInsert(() => {
+            done(new Error("onInsert called altough it should be unsubscribed"));
+        });
+        unsubscribe();
+
+        testPhonebook.insert("Arya", "female").then(() => {
+            done();
+        }).catch((err) => {
+            done(err);
+        });
+    });
+
     it("Should have a working onUpdate mechanizem", (done) => {
         expect(() => {
             testPhonebook = new Phonebook();
@@ -635,6 +732,24 @@ describe("ReactiveCollection", () => {
         p1.promise.should.be.fulfilled.and.notify(done);
     });
 
+    it("Should have a working onUpdate unsubscribe", (done) => {
+        expect(() => {
+            testPhonebook = new Phonebook();
+        }).to.not.throw(Error);
+        expect(testPhonebook.onUpdate).to.be.a("function");
+        let unsubscribe: () => void = testPhonebook.onUpdate(() => {
+            done(new Error("onUpdate called altough it should be unsubscribed"));
+        });
+        unsubscribe();
+
+        testPhonebook.insert("Tryon", "male").then((entry: PhonebookEntry) => {
+            entry.age = 30;
+            done();
+        }).catch((err) => {
+            done(err);
+        });
+    });
+
     it("Should have a working onError mechanizem", (done) => {
         expect(() => {
             testPhonebook = new Phonebook();
@@ -659,6 +774,26 @@ describe("ReactiveCollection", () => {
         p1.promise.should.be.fulfilled.and.notify(done);
     });
 
+    it("Should have a working onError unsubscribe", (done) => {
+        expect(() => {
+            testPhonebook = new Phonebook();
+        }).to.not.throw(Error);
+
+        expect(testPhonebook.onError).to.be.a("function");
+        let unsubscribe: () => void = testPhonebook.onError(() => {
+            done(new Error("onError called altough it should be unsubscribed"));
+        });
+        unsubscribe();
+
+        testPhonebook.insert("Hodor", "male").then((entry: PhonebookEntry) => {
+            return entry.error(new Error("Hodor already died? :("));
+        }).then(() => {
+            done();
+        }).catch((err) => {
+            done(err);
+        });
+    });
+
     it("Should have a working onDelete mechanizem", (done) => {
         expect(() => {
             testPhonebook = new Phonebook();
@@ -678,6 +813,26 @@ describe("ReactiveCollection", () => {
         });
 
         p1.promise.should.be.fulfilled.and.notify(done);
+    });
+
+    it("Should have a working onDelete unsubscribe", (done) => {
+        expect(() => {
+            testPhonebook = new Phonebook();
+        }).to.not.throw(Error);
+
+        expect(testPhonebook.onDelete).to.be.a("function");
+        let unsubscribe: () => void = testPhonebook.onDelete(() => {
+            done(new Error("onDelete called altough it should be unsubscribed"));
+        });
+        unsubscribe();
+
+        testPhonebook.insert("Hodor", "male").then((entry: PhonebookEntry) => {
+            return entry.kill();
+        }).then(() => {
+            done();
+        }).catch((err) => {
+            done(err);
+        });
     });
 
     it("Should have a working read()", (done) => {

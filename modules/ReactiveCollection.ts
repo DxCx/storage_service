@@ -73,33 +73,37 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
     /**
      * registers event handler for insert event.
      * @param handler to be called when the entry is created.
+     * @returns function to remove subscription.
      */
-    public onInsert(handler: (newItem: T) => void | Promise<void>): void {
-        this._ee.on("insert", handler);
+    public onInsert(handler: (newItem: T) => void | Promise<void>): () => void {
+        return this._registerEvent("insert", handler);
     }
 
     /**
      * registers event handler for update event.
      * @param handler to be called when the entry is updated.
+     * @returns function to remove subscription.
      */
-    public onUpdate(handler: (updateInfo: IReactiveUpdate) => void | Promise<void>): void {
-        this._ee.on("update", handler);
+    public onUpdate(handler: (updateInfo: IReactiveUpdate) => void | Promise<void>): () => void {
+        return this._registerEvent("update", handler);
     }
 
     /**
      * registers event handler for error event.
      * @param handler to be called when the entry is closed.
+     * @returns function to remove subscription.
      */
-    public onError(handler: (errorInfo: IReactiveError) => void | Promise<void>): void {
-        this._ee.on("error", handler);
+    public onError(handler: (errorInfo: IReactiveError) => void | Promise<void>): () => void {
+        return this._registerEvent("error", handler);
     }
 
     /**
      * registers event handler for deleted event.
      * @param handler to be called when the entry is deleted.
+     * @returns function to remove subscription.
      */
-    public onDelete(handler: (key: string) => void | Promise<void>): void {
-        this._ee.on("delete", handler);
+    public onDelete(handler: (key: string) => void | Promise<void>): () => void {
+        return this._registerEvent("delete", handler);
     }
 
     /**
@@ -222,5 +226,19 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
         return this.hasEntry(key).then((): IDBEntry<T> => {
             return this._db[key];
         });
+    }
+
+    /**
+     * The method is used to register event on the event emitter
+     * and return a function to unsubscribe it.
+     * @param eventName event to register on
+     * @param handler handler to call when event triggers
+     * @returns unsubscribe function to call when done
+     */
+    private _registerEvent<T>(eventName: string, handler: (...args: any[]) => T | Promise<T>): () => void {
+        this._ee.on(eventName, handler);
+        return () => {
+            this._ee.removeListener(eventName, handler);
+        };
     }
 }
