@@ -846,7 +846,7 @@ describe("ReactiveCollection", () => {
             return testPhonebook.insert("Katlin", "female").then((katlin: PhonebookEntry) => {
                 return testPhonebook.insert("Rob", "male").then((rob: PhonebookEntry) => {
                     return rob.kill().then(() => {
-                        let readResults: { [key: string]: any }[] = testPhonebook.read();
+                        let readResults: { [key: string]: { [key: string]: any } } = testPhonebook.read();
 
                         expect(Object.keys(readResults).length).to.be.equal(2);
                         expect(readResults[ned.key]).to.have.property("key")

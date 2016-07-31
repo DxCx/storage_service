@@ -4,7 +4,7 @@ export interface IReactiveCollection<T> {
     /**
      * @returns an array of dictionary representation of the documents.
      */
-    read(): { [key: string]: any }[];
+    read(): { [key: string]: { [key: string]: any } };
 
     /**
      * registers event handler for insert event.
