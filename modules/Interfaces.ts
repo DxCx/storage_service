@@ -2,7 +2,7 @@
 
 export interface IReactiveCollection<T> {
     /**
-     * @returns an array of dictionary representation of the documents.
+     * @returns an dict (key = item.key: item) of dictionary representation of the documents.
      */
     read(): { [key: string]: { [key: string]: any } };
 

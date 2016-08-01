@@ -21,7 +21,7 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
     }
 
     /**
-     * @returns an array of dictionary representation of the documents.
+     * @returns an dict (key = item.key: item) of dictionary representation of the documents.
      */
     public read(): { [key: string]: { [key: string]: any } } {
         let results: { [key: string]: { [key: string]: any } } = {};
