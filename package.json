@@ -1,6 +1,6 @@
 {
   "name": "storage_service",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "description": "Generic Helper for memory management with events",
   "main": "lib/main.js",
   "typings": "lib/main.d.ts",

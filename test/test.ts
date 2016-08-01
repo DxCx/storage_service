@@ -846,20 +846,20 @@ describe("ReactiveCollection", () => {
             return testPhonebook.insert("Katlin", "female").then((katlin: PhonebookEntry) => {
                 return testPhonebook.insert("Rob", "male").then((rob: PhonebookEntry) => {
                     return rob.kill().then(() => {
-                        let readResults: { [key: string]: { [key: string]: any } } = testPhonebook.read();
+                        let readResults: { [key: string]: any }[] = testPhonebook.read();
 
-                        expect(Object.keys(readResults).length).to.be.equal(2);
-                        expect(readResults[ned.key]).to.have.property("key")
+                        expect(readResults.length).to.be.equal(2);
+                        expect(readResults[0]).to.have.property("key")
                             .that.is.a("string")
                             .that.equals("Ned");
-                        expect(readResults[ned.key]).to.have.property("gender")
+                        expect(readResults[0]).to.have.property("gender")
                             .that.is.a("string")
                             .that.equals("male");
 
-                        expect(readResults[katlin.key]).to.have.property("key")
+                        expect(readResults[1]).to.have.property("key")
                             .that.is.a("string")
                             .that.equals("Katlin");
-                        expect(readResults[katlin.key]).to.have.property("gender")
+                        expect(readResults[1]).to.have.property("gender")
                             .that.is.a("string")
                             .that.equals("female");
                         p1.resolve(undefined);

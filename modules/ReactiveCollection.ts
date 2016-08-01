@@ -23,11 +23,12 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
     /**
      * @returns an array of dictionary representation of the documents.
      */
-    public read(): { [key: string]: { [key: string]: any } } {
-        let results: { [key: string]: { [key: string]: any } } = {};
+    public read(): { [key: string]: any }[] {
+        let results: { [key: string]: any }[] = [];
 
+        // TODO: How to use Array.map on iterator????
         for ( let doc of this.items() ) {
-            results[doc.key] = doc.read();
+            results.push(doc.read());
         }
 
         return results;
