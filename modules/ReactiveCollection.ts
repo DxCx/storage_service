@@ -23,11 +23,11 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
     /**
      * @returns an dict (key = item.key: item) of dictionary representation of the documents.
      */
-    public read(): { [key: string]: { [key: string]: any } } {
+    public getState(): { [key: string]: { [key: string]: any } } {
         let results: { [key: string]: { [key: string]: any } } = {};
 
         for ( let doc of this.items() ) {
-            results[doc.key] = doc.read();
+            results[doc.key] = doc.getState();
         }
 
         return results;
@@ -71,6 +71,17 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
     }
 
     /**
+     * The method is used to dispose the collection.
+     * @returns promise that will resolve once the object can be deleted
+     */
+    public async dispose(): Promise<void> {
+        await this._ee.emitAsync<void>("dispose");
+        delete this._db;
+        this._ee.removeAllListeners();
+        delete this._ee;
+    }
+
+    /**
      * registers event handler for insert event.
      * @param handler to be called when the entry is created.
      * @returns function to remove subscription.
@@ -104,6 +115,15 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
      */
     public onDelete(handler: (key: string) => void | Promise<void>): () => void {
         return this._registerEvent("delete", handler);
+    }
+
+    /**
+     * registers event handler for dispose event. (collection is deleted)
+     * @param handler to be called when the entry is deleted.
+     * @returns function to remove subscription.
+     */
+    public onDispose(handler: () => void | Promise<void>): () => void {
+        return this._registerEvent("dispose", handler);
     }
 
     /**
@@ -163,7 +183,7 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
             o.item.promise.then(() => {
                 isItemResolved = true;
                 o.item.onDelete(doneCb);
-                return this._ee.emitAsync<void>("insert", o.item.read());
+                return this._ee.emitAsync<void>("insert", o.item.getState());
             }, (errObj: Error) => {
                 doneCb();
                 throw errObj;

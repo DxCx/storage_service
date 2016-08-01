@@ -4,7 +4,13 @@ export interface IReactiveCollection<T> {
     /**
      * @returns an dict (key = item.key: item) of dictionary representation of the documents.
      */
-    read(): { [key: string]: { [key: string]: any } };
+    getState(): { [key: string]: { [key: string]: any } };
+
+    /**
+     * The method is used to dispose the collection.
+     * @returns promise that will resolve once the object can be deleted
+     */
+    dispose(): Promise<void>;
 
     /**
      * registers event handler for insert event.
@@ -33,6 +39,13 @@ export interface IReactiveCollection<T> {
      * @returns function to remove subscription.
      */
     onDelete(handler: (key: string) => void | Promise<void>): () => void;
+
+    /**
+     * registers event handler for dispose event. (collection is deleted)
+     * @param handler to be called when the entry is deleted.
+     * @returns function to remove subscription.
+     */
+    onDispose(handler: () => void | Promise<void>): () => void;
 
     /**
      * The method is used to search for specific key in storage.
@@ -97,7 +110,7 @@ export interface IReactiveDocument {
     /**
      * @returns dictionary representation of the document.
      */
-    read(): { [key: string]: any };
+    getState(): { [key: string]: any };
 
     /**
      * registers event handler for update event.

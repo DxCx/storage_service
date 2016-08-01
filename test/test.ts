@@ -593,7 +593,7 @@ describe("ReactiveDocument", () => {
         });
     });
 
-    it("Should have a working read", (done) => {
+    it("Should have a working getState", (done) => {
         class ReactiveDocumentReadTest extends ReactiveDocument {
             @ReactiveProperty()
             public foo: string;
@@ -606,10 +606,10 @@ describe("ReactiveDocument", () => {
         }
 
         let test: any = new ReactiveDocumentReadTest(new AsyncEventEmitter(), "test");
-        expect(test.read).to.be.a("function");
+        expect(test.getState).to.be.a("function");
 
         test.promise.then(() => {
-            let readResult: { [key: string]: any } = test.read();
+            let readResult: { [key: string]: any } = test.getState();
             expect(readResult).to.be.a("object");
             expect(Object.getOwnPropertyNames(readResult).length).be.equal(2);
             expect(readResult).to.have.property("key")
@@ -623,7 +623,7 @@ describe("ReactiveDocument", () => {
 
             test.foo = "bar";
 
-            readResult = test.read();
+            readResult = test.getState();
             expect(readResult).to.have.property("key")
             .that.is.a("string")
             .that.equals("test");
@@ -815,6 +815,26 @@ describe("ReactiveCollection", () => {
         p1.promise.should.be.fulfilled.and.notify(done);
     });
 
+    it("Should have a working onDispose mechanizem", (done) => {
+        expect(() => {
+            testPhonebook = new Phonebook();
+        }).to.not.throw(Error);
+        let p1: Q.Deferred<void> = Q.defer<void>();
+
+        expect(testPhonebook.onDispose).to.be.a("function");
+        testPhonebook.onDispose(() => {
+            p1.resolve(undefined);
+        });
+
+        return testPhonebook.dispose().then(() => {
+            return p1.promise;
+        }).then(() => {
+            done();
+        }, (err: Error) => {
+            done(err);
+        });
+    });
+
     it("Should have a working onDelete unsubscribe", (done) => {
         expect(() => {
             testPhonebook = new Phonebook();
@@ -835,18 +855,18 @@ describe("ReactiveCollection", () => {
         });
     });
 
-    it("Should have a working read()", (done) => {
+    it("Should have a working getState()", (done) => {
         expect(() => {
             testPhonebook = new Phonebook();
         }).to.not.throw(Error);
         let p1: Q.Deferred<void> = Q.defer<void>();
 
-        expect(testPhonebook.read).to.be.a("function");
+        expect(testPhonebook.getState).to.be.a("function");
         testPhonebook.insert("Ned", "male").then((ned: PhonebookEntry) => {
             return testPhonebook.insert("Katlin", "female").then((katlin: PhonebookEntry) => {
                 return testPhonebook.insert("Rob", "male").then((rob: PhonebookEntry) => {
                     return rob.kill().then(() => {
-                        let readResults: { [key: string]: { [key: string]: any } } = testPhonebook.read();
+                        let readResults: { [key: string]: { [key: string]: any } } = testPhonebook.getState();
 
                         expect(Object.keys(readResults).length).to.be.equal(2);
                         expect(readResults[ned.key]).to.have.property("key")

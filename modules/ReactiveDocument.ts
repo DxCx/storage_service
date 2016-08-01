@@ -45,7 +45,7 @@ export abstract class ReactiveDocument implements IReactiveDocument {
     /**
      * @returns dictionary representation of the document.
      */
-    public read(): { [key: string]: any } {
+    public getState(): { [key: string]: any } {
         let className: string = Object.getPrototypeOf(this).constructor.name;
         let reactiveKeysKey: string = `rd:reactiveKeys:${className}`;
         let reactiveKeys: Array<string> = Reflect.getMetadata(reactiveKeysKey, Object.getPrototypeOf(this));
