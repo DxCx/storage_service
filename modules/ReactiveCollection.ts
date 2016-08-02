@@ -1,6 +1,6 @@
 "use strict";
 
-import { AsyncEventEmitter, IPromiseResults } from "ts-async-eventemitter";
+import { AsyncEventEmitter } from "ts-async-eventemitter";
 import { IReactiveDocument, IReactiveCollection, IReactiveUpdate, IReactiveError } from "./Interfaces";
 
 interface IDBEntry<T> {
@@ -199,13 +199,7 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
      */
     protected async _emitEntry<U>(key: string, eventName: string, ...eventArgs: any[]): Promise<U[]> {
         let entry: IDBEntry<T> = await this._getEntry(key);
-        let results: IPromiseResults<U>[] = await entry.ee.emitAsync<U>(eventName, ...eventArgs);
-        return results.map((result: IPromiseResults<U>) => {
-            if ( result.state === "rejected" ) {
-                throw result.reason;
-            }
-            return result.value;
-        });
+        return entry.ee.emitAsync<U>(eventName, ...eventArgs);
     }
 
     /**
