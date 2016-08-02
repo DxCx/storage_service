@@ -200,14 +200,10 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
     protected async _emitEntry<U>(key: string, eventName: string, ...eventArgs: any[]): Promise<U[]> {
         let entry: IDBEntry<T> = await this._getEntry(key);
         let results: IPromiseResults<U>[] = await entry.ee.emitAsync<U>(eventName, ...eventArgs);
-        return results.filter((result: IPromiseResults<U>) => {
+        return results.map((result: IPromiseResults<U>) => {
             if ( result.state === "rejected" ) {
-                console.error(`Failure in eventHandler (${key}/${eventName}):`);
-                console.error(result.reason);
-                return false;
+                throw result.reason;
             }
-            return true;
-        }).map((result: IPromiseResults<U>) => {
             return result.value;
         });
     }
