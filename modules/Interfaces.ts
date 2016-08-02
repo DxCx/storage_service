@@ -17,7 +17,7 @@ export interface IReactiveCollection<T> {
      * @param handler to be called when the entry is created.
      * @returns function to remove subscription.
      */
-    onInsert(handler: (newItem: { [key: string]: any }) => void | Promise<void>): () => void;
+    onInsert(handler: (newItem: T) => void | Promise<void>): () => void;
 
     /**
      * registers event handler for update event.

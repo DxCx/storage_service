@@ -52,11 +52,10 @@ export abstract class ReactiveDocument implements IReactiveDocument {
         let ret: { [key: string]: any } = {
             "key": this.key,
         };
-
-        for ( let key of reactiveKeys ) {
-            if ( false === ret.hasOwnProperty(key) ) {
-                ret[key] = this[key];
-            }
+        if ( undefined !== reactiveKeys ) {
+            Object.assign(ret, ...reactiveKeys.map((key: string) => {
+                return { [key]: this[key] };
+            }));
         }
 
         return ret;

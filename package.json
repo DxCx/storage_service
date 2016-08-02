@@ -1,6 +1,6 @@
 {
   "name": "storage_service",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "Generic Helper for memory management with events",
   "main": "lib/main.js",
   "typings": "lib/main.d.ts",
@@ -9,7 +9,7 @@
     "prebuild": "npm install && npm run typings",
     "build": "webpack || echo not ok",
     "build:test": "npm run build && webpack --config webpack.config.test.js",
-    "pack": "npm run build && npm pack",
+    "pack": "npm run test && npm pack",
     "test": "npm run build:test && mocha build/test.js"
   },
   "repository": {

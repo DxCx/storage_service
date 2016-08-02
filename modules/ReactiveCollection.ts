@@ -86,7 +86,7 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
      * @param handler to be called when the entry is created.
      * @returns function to remove subscription.
      */
-    public onInsert(handler: (newItem: { [key: string]: any }) => void | Promise<void>): () => void {
+    public onInsert(handler: (newItem: T) => void | Promise<void>): () => void {
         return this._registerEvent("insert", handler);
     }
 
@@ -183,7 +183,7 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
             o.item.promise.then(() => {
                 isItemResolved = true;
                 o.item.onDelete(doneCb);
-                return this._ee.emitAsync<void>("insert", o.item.getState());
+                return this._ee.emitAsync<void>("insert", o.item);
             }, (errObj: Error) => {
                 doneCb();
                 throw errObj;

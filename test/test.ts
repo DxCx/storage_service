@@ -7,6 +7,12 @@ import { use as chaiUse, expect, should } from "chai";
 import * as Q from "q";
 
 type GenderType = "male" | "female";
+interface IPhonebookEntry {
+    key: string;
+    name: string;
+    age: number;
+    gender: GenderType;
+}
 
 class PhonebookEntry extends ReactiveDocument {
     @ReactiveProperty()
@@ -593,6 +599,33 @@ describe("ReactiveDocument", () => {
         });
     });
 
+    it("Should have a working getState (empty object)", async (done) => {
+        try {
+            class ReactiveDocumentWithoutProperties extends ReactiveDocument {
+                constructor(pee: AsyncEventEmitter, key: string) {
+                    super(pee, key);
+                    this._resolved();
+                }
+            }
+
+            let test: any = new ReactiveDocumentWithoutProperties(new AsyncEventEmitter(), "test");
+            expect(test.getState).to.be.a("function");
+
+            await test.promise;
+
+            let readResult: { [key: string]: any } = test.getState();
+            expect(readResult).to.be.a("object");
+            expect(Object.getOwnPropertyNames(readResult).length).be.equal(1);
+            expect(readResult).to.have.property("key")
+            .that.is.a("string")
+            .that.equals("test");
+
+            done();
+        } catch (e) {
+            done(e);
+        }
+    });
+
     it("Should have a working getState", (done) => {
         class ReactiveDocumentReadTest extends ReactiveDocument {
             @ReactiveProperty()
@@ -663,13 +696,17 @@ describe("ReactiveCollection", () => {
         testPhonebook.onInsert((item: PhonebookEntry) => {
             updates += 1;
             if ( 1 === updates ) {
-                expect(item.key).be.equal("Arya");
-                expect(item.getGender()).be.equal("female");
-                expect(item.age).be.equal(undefined);
+                let objectState: IPhonebookEntry = item.getState() as IPhonebookEntry;
+                expect(item.getGender).to.be.a("function");
+                expect(objectState.key).be.equal("Arya");
+                expect(objectState.gender).be.equal("female");
+                expect(objectState.age).be.equal(undefined);
             } else if ( 2 === updates ) {
-                expect(item.key).be.equal("John");
-                expect(item.getGender()).be.equal("male");
-                expect(item.age).be.equal(36);
+                let objectState: IPhonebookEntry = item.getState() as IPhonebookEntry;
+                expect(item.getGender).to.be.a("function");
+                expect(objectState.key).be.equal("John");
+                expect(objectState.gender).be.equal("male");
+                expect(objectState.age).be.equal(36);
                 p1.resolve(undefined);
             }
         });
