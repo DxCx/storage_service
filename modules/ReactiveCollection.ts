@@ -1,6 +1,6 @@
 "use strict";
 
-import { AsyncEventEmitter } from "ts-async-eventemitter";
+import { AsyncEventEmitter, IPromiseResults } from "ts-async-eventemitter";
 import { IReactiveDocument, IReactiveCollection, IReactiveUpdate, IReactiveError } from "./Interfaces";
 
 interface IDBEntry<T> {
@@ -202,9 +202,18 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
      * @returns promise that resolves once the event
      * is emitted indicating if the event was handled or not.
      */
-    protected _emitEntry<U>(key: string, eventName: string, ...eventArgs: any[]): Promise<U[]> {
-        return this._getEntry(key).then((entry: IDBEntry<T>) => {
-            return entry.ee.emitAsync<U>(eventName, ...eventArgs);
+    protected async _emitEntry<U>(key: string, eventName: string, ...eventArgs: any[]): Promise<U[]> {
+        let entry: IDBEntry<T> = await this._getEntry(key);
+        let results: IPromiseResults<U>[] = await entry.ee.emitAsync<U>(eventName, ...eventArgs);
+        return results.filter((result: IPromiseResults<U>) => {
+            if ( result.state === "rejected" ) {
+                console.error(`Failure in eventHandler (${key}/${eventName}):`);
+                console.error(result.reason);
+                return false;
+            }
+            return true;
+        }).map((result: IPromiseResults<U>) => {
+            return result.value;
         });
     }
 
