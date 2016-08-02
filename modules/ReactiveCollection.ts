@@ -162,13 +162,12 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
                 item: this._newEntry(ee, key, ...creationArgs),
             };
             this._db[key] = o;
-            let doneCb = () => {
+            o.item.onDelete(() => {
                 delete this._db[key];
                 if ( true === isItemResolved ) {
                     return this._ee.emitAsync<void>("delete", o.item.key).then(() => {/*ignore*/});
                 }
-            };
-
+            });
             o.item.onError((errObject: IReactiveError) => {
                 o.item.promise.then(() => {
                     return this._ee.emitAsync<void>("error", errObject).then(() => {/*ignore*/});
@@ -182,11 +181,7 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
 
             o.item.promise.then(() => {
                 isItemResolved = true;
-                o.item.onDelete(doneCb);
                 return this._ee.emitAsync<void>("insert", o.item);
-            }, (errObj: Error) => {
-                doneCb();
-                throw errObj;
             });
 
             return o.item;
