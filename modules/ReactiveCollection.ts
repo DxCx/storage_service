@@ -258,7 +258,9 @@ export abstract class ReactiveCollection<T extends IReactiveDocument> implements
     private _registerEvent<T>(eventName: string, handler: (...args: any[]) => T | Promise<T>): () => void {
         this._ee.on(eventName, handler);
         return () => {
-            this._ee.removeListener(eventName, handler);
+            if ( undefined !== this._ee ) {
+                this._ee.removeListener(eventName, handler);
+            }
         };
     }
 }
